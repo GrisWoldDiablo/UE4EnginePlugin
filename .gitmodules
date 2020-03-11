@@ -1,0 +1,2 @@
+[submodule "EnginePlugin/Plugins/textasset"]
+	url = https://github.com/ue4plugins/TextAsset.git
