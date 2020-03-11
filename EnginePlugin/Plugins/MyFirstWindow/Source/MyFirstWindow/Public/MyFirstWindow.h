@@ -15,8 +15,7 @@ public:
 	/** IModuleInterface implementation */
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
-	FText myText;
-	FText myButtonText;
+
 	/** This function will be bound to Command (by default it will bring up plugin window) */
 	void PluginButtonClicked();
 	
@@ -26,6 +25,7 @@ private:
 	void AddMenuExtension(FMenuBuilder& Builder);
 
 	TSharedRef<class SDockTab> OnSpawnPluginTab(const class FSpawnTabArgs& SpawnTabArgs);
+	FReply OnClicked();
 protected:
 	void ClassPicker(UClass* AssetClass);
 
@@ -37,5 +37,5 @@ private:
 
 	/** Callback for committed text in the editable text box. */
 	void HandleEditableTextBoxTextCommitted(const FText& Comment, ETextCommit::Type CommitType);
-	UObject* ChosenClass;
+	UClass* ChosenClass;
 };

@@ -16,7 +16,6 @@
 #include "Editor/EditorEngine.h"
 #include <DeclarativeSyntaxSupport.h>
 #include <ClassViewerModule.h>
-#include <Private/SClassViewer.h>
 #include <Kismet/GameplayStatics.h>
 
 static const FName MyFirstWindowTabName("MyFirstWindow");
@@ -26,8 +25,6 @@ static const FName MyFirstWindowTabName("MyFirstWindow");
 void FMyFirstWindowModule::StartupModule()
 {
 	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
-	myText = FText::FromString("Hello");
-	myButtonText = FText::FromString("I GOT A JOB!!");
 	FMyFirstWindowStyle::Initialize();
 	FMyFirstWindowStyle::ReloadTextures();
 
@@ -84,7 +81,8 @@ TSharedRef<SDockTab> FMyFirstWindowModule::OnSpawnPluginTab(const FSpawnTabArgs&
 	FClassViewerInitializationOptions InitOptions;
 	InitOptions.Mode = EClassViewerMode::ClassPicker;
 	InitOptions.DisplayMode = EClassViewerDisplayMode::ListView;
-	
+	FClassViewerModule& ClassViewerModule = FModuleManager::LoadModuleChecked<FClassViewerModule>("ClassViewer");
+
 
 	return SNew(SDockTab)
 		.TabRole(ETabRole::NomadTab)
@@ -102,13 +100,7 @@ TSharedRef<SDockTab> FMyFirstWindowModule::OnSpawnPluginTab(const FSpawnTabArgs&
 				[
 					/*SNew(SMultiLineEditableTextBox)
 					.Text(myText)*/
-					FModuleManager::LoadModuleChecked<FClassViewerModule>("ClassViewer").CreateClassViewer(InitOptions, FOnClassPicked::CreateLambda([=](UClass* AssetClass) {
-
-						ChosenClass = AssetClass;
-						UE_LOG(LogTemp, Warning, TEXT("%s"), *AssetClass->GetName());
-						}))
-					//SNew( SClassViewer, InitOptions )
-					//.OnClassPickedDelegate(FOnClassPicked::CreateSP(this, &FMyFirstWindowModule::ClassPicker))
+					ClassViewerModule.CreateClassViewer(InitOptions, FOnClassPicked::CreateRaw(this, &FMyFirstWindowModule::ClassPicker))
 				]
 					
 			+ SHorizontalBox::Slot()
@@ -119,42 +111,8 @@ TSharedRef<SDockTab> FMyFirstWindowModule::OnSpawnPluginTab(const FSpawnTabArgs&
 					SNew(SButton)
 					.HAlign(HAlign_Center)
 					.VAlign(VAlign_Center)
-					.Text(myButtonText)
-				.OnClicked(FOnClicked::CreateLambda([=] {
-				TArray<AActor*> AllActors;
-				auto gworld = GEditor->GetEditorWorldContext(true).World();
-				UGameplayStatics::GetAllActorsOfClass(gworld, AActor::StaticClass(), AllActors);
-					for (auto acto : AllActors)
-					{
-						if (acto)
-						{
-							UE_LOG(LogTemp, Warning, TEXT("{%s}, %s,(%s)"), *acto->GetWorld()->GetName(), *acto->GetClass()->GetName(), *acto->GetActorLabel());
-
-						}
-					}
-					auto selections = GEditor->GetSelectedActors();
-					for (FSelectionIterator It(*selections);It;++It)
-					{
-						auto actor = Cast<AMyCube>(*It);
-						if ( actor != nullptr)
-						{
-							UE_LOG(LogTemp, Warning, TEXT("{%s}, %s,(%s)"),*actor->GetWorld()->GetName(), *actor->GetClass()->GetName(), *actor->GetActorLabel());
-							actor->SetActorScale3D(actor->GetActorScale3D() * 1.1f);
-						}
-					}
-					//for (size_t i = 0; i < selections->Num(); i++)
-					//{
-					//	auto actor = selections.TClassIterator[i];
-					//	UE_LOG(LogTemp, Warning, TEXT("%s,(%s)"), *actor->GetName());
-					//}
-					/*
-					for (auto sel : allSelected) {
-						auto actor = Cast<AActor>(sel);
-						UE_LOG(LogTemp, Warning, TEXT("%s,(%s)"),*actor.GetClass()->GetName(), *actor.GetActorLabel());
-					}*/
-					UE_LOG(LogTemp, Warning, TEXT("I GOT A JOB!!!"));
-					return FReply::Handled();
-					}))
+					.Text(FText::FromString("Click Me"))
+					.OnClicked(FOnClicked::CreateRaw(this, &FMyFirstWindowModule::OnClicked))
 				]
 			+ SHorizontalBox::Slot()
 				.HAlign(HAlign_Center)
@@ -192,9 +150,61 @@ TSharedRef<SDockTab> FMyFirstWindowModule::OnSpawnPluginTab(const FSpawnTabArgs&
 				
 		];
 }
-void FMyFirstWindowModule::ClassPicker(UClass* AssetClass) {
-	UE_LOG(LogTemp, Warning, TEXT("%s"), *AssetClass->GetName());
+FReply FMyFirstWindowModule::OnClicked()
+{
+	TArray<AActor*> AllActors;
+	auto gworld = GEditor->GetEditorWorldContext(true).World();
+	UGameplayStatics::GetAllActorsOfClass(gworld, AActor::StaticClass(), AllActors);
+	for (auto acto : AllActors)
+	{
+		if (acto)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("{%s}, %s,(%s)"), *acto->GetWorld()->GetName(), *acto->GetClass()->GetName(), *acto->GetActorLabel());
+			UE_LOG(LogTemp, Warning, TEXT("ChosenClass: {%s} Acto:(%s)"), *ChosenClass->GetName(),*acto->GetName());
+		}
+		if (acto->GetClass()->IsChildOf(ChosenClass))
+		{
+			GEditor->SelectActor(acto, true, true);
+			GEditor->SelectAllActorsWithClass(false);
+		}
+		/*auto myCube = Cast<AMyCube>(acto);
+		if (myCube)
+		{
+			GEditor->SelectActor(myCube, true, true);
+			GEditor->SelectAllActorsWithClass(false);
+			break;
+		}*/
+	}
+	
+	auto selections = GEditor->GetSelectedActors();
+	for (FSelectionIterator It(*selections); It; ++It)
+	{
+		auto actor = Cast<AMyCube>(*It);
+		if (actor != nullptr)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("{%s}, %s,(%s)"), *actor->GetWorld()->GetName(), *actor->GetClass()->GetName(), *actor->GetActorLabel());
+			actor->SetActorScale3D(actor->GetActorScale3D() * 1.1f);
+		}
+	}
+	//for (size_t i = 0; i < selections->Num(); i++)
+	//{
+	//	auto actor = selections.TClassIterator[i];
+	//	UE_LOG(LogTemp, Warning, TEXT("%s,(%s)"), *actor->GetName());
+	//}
+	/*
+	for (auto sel : allSelected) {
+	auto actor = Cast<AActor>(sel);
+	UE_LOG(LogTemp, Warning, TEXT("%s,(%s)"),*actor.GetClass()->GetName(), *actor.GetActorLabel());
+	}*/
+	UE_LOG(LogTemp, Warning, TEXT("I GOT A JOB!!!"));
+	return FReply::Handled();
 }
+
+void FMyFirstWindowModule::ClassPicker(UClass* AssetClass) {
+	ChosenClass = AssetClass;
+	UE_LOG(LogTemp, Warning, TEXT("Raw Deletage {%s}"), *AssetClass->GetName());
+}
+
 void FMyFirstWindowModule::HandleEditableTextBoxTextChanged(const FText& NewText)
 {
 	
