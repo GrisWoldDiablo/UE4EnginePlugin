@@ -27,9 +27,11 @@ public class MyFirstWindow : ModuleRules
 			{
 				"Core",
 				"ClassViewer",
+				"LevelEditor",
+                "Kismet",
 				// ... add other public dependencies that you statically link with here ...
 			}
-			);
+            );
 			
 		
 		PrivateDependencyModuleNames.AddRange(
@@ -45,6 +47,8 @@ public class MyFirstWindow : ModuleRules
 				"SlateCore",
 				"EnginePlugin",
 				"ClassViewer",
+				"LevelEditor",
+				"Kismet",
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);

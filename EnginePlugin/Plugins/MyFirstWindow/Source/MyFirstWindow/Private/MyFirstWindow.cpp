@@ -17,6 +17,8 @@
 #include <DeclarativeSyntaxSupport.h>
 #include <ClassViewerModule.h>
 #include <Kismet/GameplayStatics.h>
+#include <SSCSEditor.h>
+#include <PropertyEditorModule.h>
 
 static const FName MyFirstWindowTabName("MyFirstWindow");
 
@@ -82,8 +84,21 @@ TSharedRef<SDockTab> FMyFirstWindowModule::OnSpawnPluginTab(const FSpawnTabArgs&
 	InitOptions.Mode = EClassViewerMode::ClassPicker;
 	InitOptions.DisplayMode = EClassViewerDisplayMode::ListView;
 	FClassViewerModule& ClassViewerModule = FModuleManager::LoadModuleChecked<FClassViewerModule>("ClassViewer");
+	
+	//TSharedPtr<SBox> ComponentsBox = SNew(SBox)
+	//	.Visibility(EVisibility::Collapsed);
 
+	//TSharedPtr<class SSCSEditor> SCSEditor = SNew(SSCSEditor)
+	//	.EditorMode(EComponentEditorMode::ActorInstance)
+	//	.AllowEditing_Lambda([=] {return GEditor->PlayWorld == nullptr; })
+	//	.ActorContext_Lambda([=] {return GEditor->GetSelectedActors()->GetTop<AActor>(); });
 
+	//	//.OnSelectionUpdated(this, &SActorDetails::OnSCSEditorTreeViewSelectionChanged)
+	//	//.OnItemDoubleClicked(this, &SActorDetails::OnSCSEditorTreeViewItemDoubleClicked)
+	//ComponentsBox->SetVisibility(EVisibility::Visible);
+	//ComponentsBox->SetContent(SCSEditor.ToSharedRef());
+
+	
 	return SNew(SDockTab)
 		.TabRole(ETabRole::NomadTab)
 		[
@@ -102,7 +117,10 @@ TSharedRef<SDockTab> FMyFirstWindowModule::OnSpawnPluginTab(const FSpawnTabArgs&
 					.Text(myText)*/
 					ClassViewerModule.CreateClassViewer(InitOptions, FOnClassPicked::CreateRaw(this, &FMyFirstWindowModule::ClassPicker))
 				]
-					
+	/*+ SHorizontalBox::Slot()
+		[
+			ComponentsBox.ToSharedRef()
+		]*/
 			+ SHorizontalBox::Slot()
 				.HAlign(HAlign_Center)
 				.VAlign(VAlign_Center)
@@ -160,20 +178,18 @@ FReply FMyFirstWindowModule::OnClicked()
 		if (acto)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("{%s}, %s,(%s)"), *acto->GetWorld()->GetName(), *acto->GetClass()->GetName(), *acto->GetActorLabel());
-			UE_LOG(LogTemp, Warning, TEXT("ChosenClass: {%s} Acto:(%s)"), *ChosenClass->GetName(),*acto->GetName());
+			if (ChosenClass)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("ChosenClass: {%s} Acto:(%s)"), *ChosenClass->GetName(), *acto->GetName());
+			}
 		}
 		if (acto->GetClass()->IsChildOf(ChosenClass))
 		{
+			GEditor->SelectNone(true, true);
 			GEditor->SelectActor(acto, true, true);
 			GEditor->SelectAllActorsWithClass(false);
-		}
-		/*auto myCube = Cast<AMyCube>(acto);
-		if (myCube)
-		{
-			GEditor->SelectActor(myCube, true, true);
-			GEditor->SelectAllActorsWithClass(false);
 			break;
-		}*/
+		}
 	}
 	
 	auto selections = GEditor->GetSelectedActors();
@@ -183,6 +199,7 @@ FReply FMyFirstWindowModule::OnClicked()
 		if (actor != nullptr)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("{%s}, %s,(%s)"), *actor->GetWorld()->GetName(), *actor->GetClass()->GetName(), *actor->GetActorLabel());
+			UE_LOG(LogTemp, Warning, TEXT("Enum: {%s}"), *actor->GetEnumAsString());
 			actor->SetActorScale3D(actor->GetActorScale3D() * 1.1f);
 		}
 	}
